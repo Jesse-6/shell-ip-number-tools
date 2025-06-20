@@ -1,0 +1,103 @@
+Attention: this is not accurate to ip6tonum code! This was how I started the idea, to get a broader view of what I needed to do to get it working. And it is included to showcase how I start something prior to, or sometimes in parallel to its assembly code.
+
+IPv6 expansion:
+
+### Error check: ###
+ - get source length with null termination:
+  - if < 3 break;
+  - if = 3 try parse 0 hex value:
+   - if source string <> '::' break;
+  - if > 46 break;
+  - if > 40 and not found IPv4 portion break;
+ - search for :: abbreviation:
+  - found 1? anotate;
+  - more than 1? break;
+  - also count number of dots:
+   - if <> 3 break;
+   - if . followed by . break;
+   - anotate IPv4 portion if found 3;
+ - count number of :
+  - if < 2 or > 7 break;
+  - if < 7 and not have :: break;
+ 
+### Parse IPv4 portion if it exists: ###
+ - if number of . <> 3 break;
+ - set RTL mode;
+ - from RTL, scan for the last : within 16 positions:
+  - not found? break;
+  - save IPv4 portion length;
+  - check with length if IPv4 portion begins or ends with '.';
+   - break;
+  - verifify if IPv4 is preceded by :: and anotate;
+  - sets octet counter to 4 an multiplier to 1 and starts conversion:
+   - start iterating digits until next dot or colon:
+    - if digit < 0 or > 9 break;
+    - if multiplier > 100 break;
+    - subtract '0' then multiply by multiplier and add to result;
+    - multiply multiplier by 10;
+    - iterate next;
+     - for every octet done:
+      - if result > 255 break;
+      - convert result to hex bytes;
+      - add hex bytes to respective portion on destination hex string;
+      - check octect counter:
+       - if > 0 iterate next;
+    - restore pointer to the begining of ipv6 source string;
+    
+### Expand IPv6 (remaining) hextets: ### `TODO`
+ - measure hextets length:
+  - if IPv4 portion exists:
+   - switch RTL mode;
+   - find the begining of the IPv4 portion and save;
+   - restore LTR mode;
+ - subtract IPv4 portion length from string length and save;
+ - (OPT) check IPv6 portion length:
+  - if IPv4 portion exists and length > 30 break;
+ - verify hextets' sizes:
+  - if any > 4 break;
+ - Start LTR parsing:
+  - Create a dummy '0000' value;
+  - load byte from source:
+   - if = ':':
+    - plot result at current LTR destination hex string position;
+    - check if '::':
+     - switch to RTL parsing mode¹ and start from last IPv6 hextet;
+   - else:
+    - if digit < 0 break;
+    - if digit > 9:
+     - if digit > 'F':
+      - if digit < 'a' break;
+      - if digit > 'f' break;
+      - << 8 and set digit to lower part of dummy value;
+     - else if digit < 'A' break;
+    - << 8 and set digit to lower part of dummy value;
+   - skip ':' and check if end of hextet portion:
+    - end conversion with success if end.
+    - iterate next otherwise;
+    
+ - RTL parsing mode¹:
+  - get the last hextet pointer;
+  - sets destination hex to the last unchanged pointer - 4; ²
+  - find the previous ':';
+  - switch LTR;
+  - create a dummy '0000' value;
+   - load byte from source:
+    - if = ':':
+     - plot result at current RTL destination hex string position;
+     - look behind for '::':
+      - end conversion with success if found.
+      - switch RTL mode and continue otherwise;
+      - iterate next from ²;
+    - else:
+     - if digit < 0 break;
+     - if digit > 9:
+      - if digit > 'F':
+       - if digit < 'a' break;
+       - if digit > 'f' break;
+       - << 8 and set digit to lower part of dummy value;
+      - else if digit < 'A' break;
+       - << 8 and set digit to lower part of dummy value;
+    
+     
+    
+  
