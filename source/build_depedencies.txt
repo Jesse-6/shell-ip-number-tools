@@ -1,0 +1,10 @@
+	To compile from source code, these .asm files need:
+
+	  - fasm2 assembler properly installed and configured;
+	  - latest fastcall_v1 macro toolkit, that enables the C style function calling, among other things.
+
+	The latter can be found at: https://github.com/Jesse-6/fastcall_v1. Copy all '.inc' files to fasm2 include directory prior to compile any of these. Then, compile as follows:
+
+	  > fasm2 FILE.asm
+
+	The generated file is the final binary. Just copy it to your favorite binary location and use it in your shell scripts or terminal.
