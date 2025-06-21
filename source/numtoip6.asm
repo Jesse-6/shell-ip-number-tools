@@ -101,6 +101,8 @@ _code align 8
                             add         dl, r13b                ; Add size to index
                             xor         bl, bl                  ; Done? Reset flag
                     @@      lodsd
+                            test        eax, eax                ; Load null? -> exit loop
+                            jz          @@f
                             inc         dl
                             mov         ecx, 32                 ; Abbreviate hextets
                     @@      cmp         al, '0'                 ; Trim out leading 0's
