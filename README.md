@@ -77,6 +77,19 @@ done
 192.168.128.255
 ```
 ---
+
+> 'ip6tonum' command also supports IPv6 address that has an IPv4 portion at the end of address. But numtoip6 does only convert back to the full IPv6 address syntax:
+```
+─ ❯ ip6tonum 64:ff9b::192.0.2.8
+524413980667603649783483184533471752
+Debug: 0064 FF9B 0000 0000 0000 0000 C000 0208
+
+─ ❯ numtoip6 524413980667603649783483184533471752
+64:ff9b::c000:208
+Debug: 0064 FF9B 0000 0000 0000 0000 C000 0208 
+
+```
+---
 **Note:** *The debug message doesn't go to stdout, don't worry about it. It goes to stderr, so, no interference with numeric values passed inside a script, and this debug message will be turned off on release v0.1 (not rc).*
 
 One used to know how powerfull numbers are in shell scripts may already noticed that the possibilities over working IPs as numbers are almost endless. Hence my motivation to make these tools alive. They're not the perfect solution (native handling IPs as numbers will be it), but they do their job as expected.
