@@ -9,6 +9,9 @@ include 'gmp.inc'
 ; bl flags map:
 ; BIT0: set if string allows abbreviation
 
+; r14b flags map:
+; BIT0: set to enable debug output (hidden option '-d' as second argument)
+
 _bss align sizeof(IPv6)
         IPv6                mpz_t
         IPv6_max            mpz_t
@@ -32,10 +35,20 @@ _data
 
 _code align 8
         Start:              endbr64
-                            cmp         [rsp], dword 2
+                            xor         r14, r14
+                            cmp         [rsp], dword 3          ; Check for second argument
+                            jne         @f
+                            mov         r15, [rsp+24]
+                            cmp         [r15], word '-d'        ; being '-d': if yes,
+                            jne         .help
+                            test        [r15+2], byte -1        ;
+                            jnz         .help
+                            setz        r14b                    ; enable debug output
+                            jmp         @f2
+                    @@      cmp         [rsp], dword 2
                             jne         .help
 
-                            mpz_inits(&IPv6_max, &IPv6_min, NULL); ; Initialize mpz variables to 0
+                    @@      mpz_inits(&IPv6_max, &IPv6_min, NULL); ; Initialize mpz variables to 0
                             mpz_ui_pow_ui(&IPv6_max, 2, 128);   ; (2^128) = IPv6 outer limit
                             mpz_init_set_str(&IPv6, [rsp+16], 10);
                             test        eax, eax
@@ -131,6 +144,8 @@ _code align 8
                     @@@     mov         [rdi], word 0Ah
 
             .output:        fputs(&IPv6_out, **stdout);
+                            test        r14b, r14b                  ; Check debug flag
+                            jz          .end_success
                             lea         r15, [IPv6_full]            ; SSE2 uppercase converter
                             movdqa      xmm0, [r15]
                             movdqa      xmm1, [r15+16]
@@ -167,7 +182,7 @@ _code align 8
                             dec         bl
                             jnz         @b
                             fputs(<27,"[0m",10,0>, *stderr);
-                            exit(EXIT_SUCCESS);
+            .end_success:   exit(EXIT_SUCCESS);
 
             .err_clear:     mpz_clears(&IPv6, &IPv6_max, &IPv6_min, NULL);
             .errconv:       fputs(<"Invalid argument.",10,0>, **stderr);

@@ -11,6 +11,9 @@ include 'gmp.inc'
 ; BIT1: set when address contains '::' abbreviation
 ; BIT2: set if IPv4 portion is preceded by '::' (which means don't invert);
 
+; r13b flags map:
+; BIT0: set to enable debugging (hidden option '-d' as 2nd argument)
+
 _bss align 16
         IPv6                mpz_t
 
@@ -29,10 +32,20 @@ _data align 16
 
 _code align 8
         Start:              endbr64
-                            cmp         [rsp], dword 2
+                            xor         r13, r13
+                            cmp         [rsp], dword 3      ; Check for second argument
+                            jne         @f
+                            mov         rax, [rsp+24]       ; being '-d': If yes,
+                            cmp         [rax], word '-d'
+                            jne         .help
+                            test        [rax+2], byte -1    ;
+                            jnz         .help
+                            setz        r13b                ; set BIT0 at r13b (non volatile) register
+                            jmp         @f2
+                    @@      cmp         [rsp], dword 2
                             jne         .help
 
-                            xor         ebx, ebx        ; bl = conversion flags¹
+                    @@      xor         ebx, ebx        ; bl = conversion flags¹
                             mov         rsi, [rsp+16]   ; Start sanity check
                             mov         rdi, [rsp+16]
                             xor         al, al
@@ -255,6 +268,8 @@ _code align 8
                             jmp         .errconv
                     @@      gmp_fprintf(**stdout, <"%Zd",10,0>, &IPv6);
                             mpz_clear(&IPv6);
+                            test        r13b, r13b
+                            jz          .end_success
             .debug:         mov         rax, [stderr]
                             push        [rax]
                             pop         [stderr]
@@ -271,7 +286,7 @@ _code align 8
                             dec         bl
                             jnz         @b
                             fputs(<27,"[0m",10,0>, *stderr);
-                            exit(EXIT_SUCCESS);
+            .end_success:   exit(EXIT_SUCCESS);
 
             .nullIPv6:      cmp         [rsi], word '::'
                             je          .output
